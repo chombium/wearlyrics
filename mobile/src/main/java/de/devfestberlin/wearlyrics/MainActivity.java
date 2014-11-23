@@ -7,6 +7,11 @@ import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import org.jmusixmatch.MusixMatch;
 import org.jmusixmatch.MusixMatchException;
@@ -31,24 +36,62 @@ public class MainActivity extends ActionBarActivity {
         this.enableStrictMode();
         this.musixMatch = new MusixMatch("fa8dd8ef6bc0c4555960ead3062c2c28");
 
-        try {
-
             String lyrics = this.fetchLyricsForArtistAndTrack(this.artist, this.track);
             this.createNotificationForTrack(this.artist, this.track, lyrics);
 
-        } catch (MusixMatchException e) {
-            e.printStackTrace();
-        }
+
+        final EditText editArtist = (EditText) findViewById(R.id.editArtist);
+        final EditText editTrack = (EditText) findViewById(R.id.editTrack);
+        Button buttonSearch = (Button) findViewById(R.id.buttonSearch);
+        final TextView textLyrics = (TextView) findViewById(R.id.textLyrics);
+
+        buttonSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (editArtist.getText().length() <= 0) {
+                    Toast.makeText(getApplicationContext(), "Choose an artist.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (editTrack.getText().length() <= 0) {
+                    Toast.makeText(getApplicationContext(), "Choose a track.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                artist = editArtist.getText().toString();
+                track = editTrack.getText().toString();
+                String lyrics = fetchLyricsForArtistAndTrack(editArtist.getText().toString(), editTrack.getText().toString());
+
+                if (lyrics == null || lyrics.length() <= 0)
+                {
+                    Toast.makeText(getApplicationContext(), "Sorry, no lyrics found.", Toast.LENGTH_SHORT).show();
+                }
+
+                textLyrics.setText(lyrics);
+                createNotificationForTrack(artist, track, lyrics);
+            }
+        });
 
     }
 
-    private String fetchLyricsForArtistAndTrack(String artist, String track) throws MusixMatchException {
-        List<Track> tracks = this.musixMatch.searchTracks("", artist, track, 1, 1, true);
+    private String fetchLyricsForArtistAndTrack(String artist, String track) {
+        List<Track> tracks = null;
+        try {
+            tracks = this.musixMatch.searchTracks("", artist, track, 1, 1, true);
+        } catch (MusixMatchException e) {
+            e.printStackTrace();
+            return null;
+        }
 
         if(tracks.size() > 0)
         {
             int trackId = tracks.get(0).getTrack().getTrackId();
-            return this.musixMatch.getLyrics(trackId).getLyricsBody();
+            try {
+                return this.musixMatch.getLyrics(trackId).getLyricsBody();
+            } catch (MusixMatchException e) {
+                e.printStackTrace();
+                return null;
+            }
         }
 
         return null;
@@ -60,7 +103,7 @@ public class MainActivity extends ActionBarActivity {
         NotificationCompat.Builder notification =
                 new NotificationCompat.Builder(getApplicationContext())
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setContentTitle(artist + " " + track)
+                .setContentTitle(artist + " - " + track)
                 .setSmallIcon(R.drawable.ic_launcher)
                 .setContentText(lyrics);
 
