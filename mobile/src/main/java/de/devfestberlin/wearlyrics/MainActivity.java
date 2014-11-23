@@ -1,45 +1,71 @@
 package de.devfestberlin.wearlyrics;
 
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
+
+import org.jmusixmatch.MusixMatch;
+import org.jmusixmatch.MusixMatchException;
+import org.jmusixmatch.entity.track.Track;
+
+import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity {
 
     private static final String LOG_TAG = MainActivity.class.getSimpleName();
+    private MusixMatch musixMatch;
+
+    private String artist = "Tool";
+    private String track = "Jambi";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button button = (Button) findViewById(R.id.button);
+        this.enableStrictMode();
+        this.musixMatch = new MusixMatch("fa8dd8ef6bc0c4555960ead3062c2c28");
 
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        try {
 
-                int notificationID = 1;
+            String lyrics = this.fetchLyricsForArtistAndTrack(this.artist, this.track);
+            this.createNotificationForTrack(this.artist, this.track, lyrics);
 
-                NotificationCompat.Builder notification =
-                        new NotificationCompat.Builder(getApplicationContext())
-                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                        .setContentTitle(getString(R.string.lyrics))
-                        .setSmallIcon(R.drawable.ic_queue_music_black_48dp)
-                        .setContentText(getString(R.string.lorem));
+        } catch (MusixMatchException e) {
+            e.printStackTrace();
+        }
 
-                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-                notificationManager.notify(notificationID, notification.build());
+    }
 
-            }
-        });
+    private String fetchLyricsForArtistAndTrack(String artist, String track) throws MusixMatchException {
+        List<Track> tracks = this.musixMatch.searchTracks("", artist, track, 1, 1, true);
 
+        if(tracks.size() > 0)
+        {
+            int trackId = tracks.get(0).getTrack().getTrackId();
+            return this.musixMatch.getLyrics(trackId).getLyricsBody();
+        }
+
+        return null;
+    }
+
+    private void createNotificationForTrack(String artist, String track, String lyrics) {
+        int notificationID = 1;
+
+        NotificationCompat.Builder notification =
+                new NotificationCompat.Builder(getApplicationContext())
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setContentTitle(artist + " " + track)
+                .setSmallIcon(R.drawable.ic_launcher)
+                .setContentText(lyrics);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        notificationManager.notify(notificationID, notification.build());
     }
 
 
@@ -64,4 +90,11 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    public void enableStrictMode()
+    {
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+    }
+
 }
