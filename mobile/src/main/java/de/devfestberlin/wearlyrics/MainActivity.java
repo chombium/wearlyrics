@@ -29,6 +29,7 @@ public class MainActivity extends ActionBarActivity {
 
                 NotificationCompat.Builder notification =
                         new NotificationCompat.Builder(getApplicationContext())
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                         .setContentTitle(getString(R.string.lyrics))
                         .setSmallIcon(R.drawable.ic_queue_music_black_48dp)
                         .setContentText(getString(R.string.lorem));
